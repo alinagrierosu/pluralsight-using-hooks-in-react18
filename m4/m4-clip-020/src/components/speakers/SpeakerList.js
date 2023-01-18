@@ -1,16 +1,19 @@
 import SpeakerLine from "./SpeakerLine";
-import {useEffect, useState} from 'react';
+import {useEffect, useState, useReducer} from 'react';
 import axios from 'axios';
 
-function List({speakers, updateSpeaker}) {
-  const updatingId = 0; // 1269;
+function List({state, dispatch}) {
+  const [updatingId, setUpdatingId] = useState(0);
   const isPending = false;
+  const speakers = state.speakers;
 
   function toggleFavoriteSpeaker(speakerRec) {
     const speakerRecUpdated = {...speakerRec, favorite: !speakerRec.favorite};
-    updateSpeaker(speakerRecUpdated);
+    dispatch({type:"updateSpeaker", speaker: speakerRecUpdated});
     async function updateAsync(rec){
+      setUpdatingId(rec.id);
       await axios.put(`/api/speakers/${rec.id}`, speakerRecUpdated);
+      setUpdatingId(0);
     };
     updateAsync(speakerRecUpdated);
   }
@@ -62,31 +65,43 @@ function List({speakers, updateSpeaker}) {
 
 const SpeakerList = () => {
   const darkTheme = false;
-  const [speakers, setSpeakers] = useState([]);
-  const [loading, setLoading] = useState(true);
+
+  function reducer(state, action) {
+    switch(action.type){
+      case "speakersLoaded":
+        return { ...state, loading: false, speakers: action.speakers };
+      case "setLoadingStatus":
+        return { ...state, loading: true };
+      case "updateSpeaker":
+        const speakersUpdated = state.speakers.map((rec)=> 
+          action.speaker.id === rec.id ? action.speaker : rec
+        );
+        return {...state, speakers: speakersUpdated };
+      default: 
+      throw new Error(`case failure. type: ${action.type}`);
+    }
+  }
+
+  const initialState = {
+    speakers: [],
+    loading: true
+  };
+  const [state, dispatch] = useReducer(reducer, initialState);
 
   useEffect(() => {
     async function getDataAsync() {
-      setLoading(true);
+      dispatch({type:"setLoadingStatus"});
       const results = await axios.get("/api/speakers");
-      setSpeakers(results.data);
-      setLoading(false);
+      dispatch({type: "speakersLoaded", speakers: results.data});
     }
     getDataAsync();
   }, []);
 
-  function updateSpeaker(speakerRec) {
-    const speakerUpdated = speakers.map(function(rec){
-      return speakerRec.id === rec.id ? speakerRec : rec;
-    });
-    setSpeakers(speakerUpdated);
-  }
-
-  if(loading) return <div>Loading ... </div>;
+  if(state.loading) return <div>Loading ... </div>;
 
   return (
     <div className={darkTheme ? "theme-dark" : "theme-light"}>
-      <List speakers={speakers} updateSpeaker={updateSpeaker}/>
+      <List state={state} dispatch={dispatch}/>
     </div>
   );
 };
