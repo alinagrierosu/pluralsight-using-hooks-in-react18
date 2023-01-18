@@ -23,7 +23,7 @@ export default function SpeakerImageToggleOnScroll({
   }  
   
   function isInView() {
-    const rect = imageRef.current.getBoudingClientRect();
+    const rect = imageRef.current.getBoundingClientRect();
     return rect.top >= 0 && rect.bottom <= window;
   }
 
