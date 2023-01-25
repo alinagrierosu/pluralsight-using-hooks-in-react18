@@ -1,13 +1,13 @@
 import SpeakerLine from "./SpeakerLine";
-import { useContext, useEffect, useReducer, useState, useCallback, useDeferredValue } from "react";
+import { useContext, useEffect, useReducer, useState, useCallback, useTransition } from "react";
 import { ThemeContext } from "../contexts/ThemeContext";
 import axios from "axios";
 
 function List({ state, dispatch }) {
   const [updatingId, setUpdatingId] = useState(0);
   const [searchName, setSearchName ] = useState("");
-  const highlighChars = useDeferredValue(searchName);
-  const isPending = false;
+  const [highlighChars, setHighlightChars] = useState();
+  const [isPending, startTransition] = useTransition();
   const speakers = state.speakers;
 
   function toggleFavoriteSpeaker(speakerRec) {
@@ -38,6 +38,9 @@ function List({ state, dispatch }) {
                 value={searchName}
                 onChange={(event) => {
                   setSearchName(event.target.value);
+                  startTransition(()=> {
+                    setHighlightChars(event.target.value);
+                  });
                 }}
                 type="text"
                 className="form-control"
